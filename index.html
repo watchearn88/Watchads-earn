@@ -1,0 +1,1046 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Watch & Earn PKR - Monetize Your Time</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f3f4f6;
+            min-height: 100vh;
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 9999px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(16, 185, 129, 0.3);
+        }
+        
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .loading-spinner {
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(0,0,0,0.1);
+        }
+        
+        .gradient-text {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .pulse-ring {
+            animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+        }
+        
+        @keyframes pulse-ring {
+            0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+            70% { box-shadow: 0 0 0 20px rgba(16, 185, 129, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+        
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(4px);
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 24px;
+            width: 100%;
+            max-width: 400px;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+        }
+        
+        .section-content {
+            display: block;
+            width: 100%;
+        }
+        
+        .ad-container {
+            background: #1f2937;
+            border-radius: 16px;
+            min-height: 250px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #374151;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 16px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #10b981, #059669);
+            border-radius: 4px;
+            transition: width 1s linear;
+        }
+
+        .success-animation {
+            animation: successPop 0.5s ease;
+        }
+
+        @keyframes successPop {
+            0% { transform: scale(0.8); opacity: 0; }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navigation -->
+    <nav class="glass-panel fixed w-full top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16 items-center">
+                <div class="flex items-center gap-2 cursor-pointer" onclick="showSection('home')">
+                    <i class="fas fa-coins text-emerald-500 text-2xl"></i>
+                    <div>
+                        <span class="font-bold text-xl tracking-tight block leading-none">Watch<span class="text-emerald-600">Earn</span></span>
+                        <span class="text-xs text-gray-500 font-bold">PKR</span>
+                    </div>
+                </div>
+                
+                <!-- Auth Buttons -->
+                <div id="nav-auth" class="flex items-center gap-3">
+                    <button onclick="showAuthModal('login')" class="text-gray-600 hover:text-emerald-600 font-medium px-3 py-2">Login</button>
+                    <button onclick="showAuthModal('signup')" class="btn-primary text-sm">Sign Up</button>
+                </div>
+
+                <!-- User Menu -->
+                <div id="nav-user" class="hidden items-center gap-4">
+                    <div class="hidden md:block text-right">
+                        <div class="text-xs text-gray-500">Balance</div>
+                        <div class="font-bold text-emerald-600" id="nav-balance">PKR 0.00</div>
+                    </div>
+                    <div class="relative">
+                        <button onclick="toggleDropdown()" class="flex items-center gap-2 bg-emerald-100 text-emerald-700 px-3 py-2 rounded-full text-sm font-medium">
+                            <i class="fas fa-user"></i>
+                            <span id="user-name">User</span>
+                            <i class="fas fa-chevron-down text-xs"></i>
+                        </button>
+                        <div id="user-dropdown" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-200 py-2">
+                            <a href="#" onclick="showSection('dashboard'); toggleDropdown(); return false;" class="block px-4 py-2 text-sm text-gray-700 hover:bg-emerald-50">Dashboard</a>
+                            <a href="#" onclick="showSection('withdraw'); toggleDropdown(); return false;" class="block px-4 py-2 text-sm text-gray-700 hover:bg-emerald-50">Withdraw</a>
+                            <a href="#" onclick="showSection('history'); toggleDropdown(); return false;" class="block px-4 py-2 text-sm text-gray-700 hover:bg-emerald-50">History</a>
+                            <div class="border-t border-gray-100 my-1"></div>
+                            <a href="#" onclick="logout(); return false;" class="block px-4 py-2 text-sm text-red-600 hover:bg-red-50">Logout</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Spacer for fixed nav -->
+    <div class="h-16"></div>
+
+    <!-- PUBLIC HOME PAGE -->
+    <div id="page-home" class="section-content">
+        <div class="bg-gradient-to-b from-emerald-50 to-white min-h-screen pb-20">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center pt-12">
+                <h1 class="text-4xl md:text-5xl font-bold mb-6 leading-tight">
+                    Turn Your <span class="gradient-text">Spare Time</span><br>Into Real Cash
+                </h1>
+                <p class="text-lg text-gray-600 mb-8 max-w-2xl mx-auto">
+                    Watch advertisements for 10 seconds and earn PKR 5 automatically. 
+                    No verification needed! Withdraw instantly when you reach PKR 1,500.
+                </p>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto mb-12">
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                        <div class="text-3xl font-bold text-emerald-600 mb-1">PKR 5</div>
+                        <div class="text-sm text-gray-500">Per Ad View</div>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                        <div class="text-3xl font-bold text-blue-600 mb-1">PKR 1,500</div>
+                        <div class="text-sm text-gray-500">Min Withdrawal</div>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                        <div class="text-3xl font-bold text-purple-600 mb-1">Auto</div>
+                        <div class="text-sm text-gray-500">No Verification</div>
+                    </div>
+                </div>
+
+                <button onclick="showAuthModal('signup')" class="btn-primary text-lg px-8 py-4 pulse-ring inline-flex items-center gap-2">
+                    Get Started Free <i class="fas fa-arrow-right"></i>
+                </button>
+
+                <!-- Features -->
+                <div class="mt-20 max-w-4xl mx-auto">
+                    <h2 class="text-2xl font-bold mb-8">How It Works</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                        <div class="text-center">
+                            <div class="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4 text-emerald-600 text-2xl">
+                                <i class="fas fa-user-plus"></i>
+                            </div>
+                            <h3 class="font-bold mb-2">1. Sign Up</h3>
+                            <p class="text-gray-500 text-sm">Create your free account</p>
+                        </div>
+                        <div class="text-center">
+                            <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4 text-blue-600 text-2xl">
+                                <i class="fas fa-play"></i>
+                            </div>
+                            <h3 class="font-bold mb-2">2. Watch 10 Sec</h3>
+                            <p class="text-gray-500 text-sm">View ad for 10 seconds</p>
+                        </div>
+                        <div class="text-center">
+                            <div class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4 text-purple-600 text-2xl">
+                                <i class="fas fa-money-bill-wave"></i>
+                            </div>
+                            <h3 class="font-bold mb-2">3. Auto Credit</h3>
+                            <p class="text-gray-500 text-sm">PKR 5 added automatically</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- DASHBOARD PAGE -->
+    <div id="page-dashboard" class="section-content hidden">
+        <div class="bg-gray-50 min-h-screen pb-20">
+            <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                
+                <!-- Welcome Banner -->
+                <div class="bg-gradient-to-r from-emerald-500 to-teal-600 rounded-3xl p-6 text-white mb-6 shadow-lg">
+                    <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+                        <div>
+                            <h2 class="text-2xl font-bold mb-1">Welcome, <span id="welcome-name">User</span>! 👋</h2>
+                            <p class="text-emerald-100 text-sm">Watch ads and earn automatically!</p>
+                        </div>
+                        <div class="bg-white/20 backdrop-blur px-6 py-3 rounded-2xl text-center">
+                            <div class="text-xs text-emerald-100 mb-1">Balance</div>
+                            <div class="text-2xl font-bold" id="dashboard-balance">PKR 0.00</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Adstera Native Banner -->
+                <div class="bg-white rounded-2xl p-4 mb-6 shadow-sm border border-gray-200">
+                    <div class="text-xs text-gray-400 mb-2 uppercase font-bold">Sponsored</div>
+                    <script async="async" data-cfasync="false" src="https://pl28620384.effectivegatecpm.com/cea8d2c7a04ea07fa2943f9fa9f3728a/invoke.js"></script>
+                    <div id="container-cea8d2c7a04ea07fa2943f9fa9f3728a"></div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    
+                    <!-- Ad Watching -->
+                    <div class="lg:col-span-2">
+                        <div class="bg-white rounded-3xl shadow-lg p-6 border border-gray-100">
+                            <div class="flex justify-between items-center mb-4">
+                                <h3 class="text-xl font-bold text-gray-800">Watch & Earn</h3>
+                                <span class="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-xs font-bold">AUTO CREDIT</span>
+                            </div>
+
+                            <!-- Ad Display -->
+                            <div class="ad-container mb-6 relative overflow-hidden" style="min-height: 280px;">
+                                <!-- Ready State -->
+                                <div id="ad-ready" class="text-center p-8 w-full">
+                                    <button onclick="startWatching()" id="watch-btn" class="w-24 h-24 bg-emerald-500 rounded-full flex items-center justify-center mb-4 shadow-lg pulse-ring mx-auto hover:bg-emerald-400 transition transform hover:scale-105">
+                                        <i class="fas fa-play text-4xl text-white ml-2"></i>
+                                    </button>
+                                    <p class="text-xl font-bold mb-2">Click to Watch Ad</p>
+                                    <p class="text-sm text-gray-400">PKR 5.00 will be added automatically after 10 seconds</p>
+                                </div>
+
+                                <!-- Watching State -->
+                                <div id="ad-watching" class="hidden text-center p-8 w-full">
+                                    <div class="mb-4">
+                                        <i class="fas fa-external-link-alt text-5xl text-emerald-400 mb-4 block"></i>
+                                        <h3 class="text-2xl font-bold mb-2">Ad Opened!</h3>
+                                        <p class="text-gray-400 mb-6">View the ad in the new tab</p>
+                                    </div>
+                                    
+                                    <div class="bg-gray-800 rounded-2xl p-6 inline-block min-w-[200px]">
+                                        <div class="text-gray-400 text-sm mb-2">Time Remaining</div>
+                                        <div class="text-5xl font-bold text-white mb-2" id="countdown-timer">10</div>
+                                        <div class="text-emerald-400 text-sm">seconds</div>
+                                        
+                                        <!-- Progress Bar -->
+                                        <div class="progress-bar">
+                                            <div class="progress-fill" id="time-progress" style="width: 0%"></div>
+                                        </div>
+                                    </div>
+
+                                    <p class="text-gray-500 text-sm mt-4">Don't close this window!</p>
+                                </div>
+
+                                <!-- Processing State -->
+                                <div id="ad-processing" class="hidden text-center p-8 w-full">
+                                    <i class="fas fa-spinner loading-spinner text-5xl text-emerald-400 mb-4 block"></i>
+                                    <h3 class="text-xl font-bold mb-2">Adding PKR 5.00...</h3>
+                                    <p class="text-gray-400 text-sm">Please wait</p>
+                                </div>
+
+                                <!-- Success State -->
+                                <div id="ad-success" class="hidden text-center p-8 w-full success-animation">
+                                    <div class="w-24 h-24 bg-emerald-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+                                        <i class="fas fa-check text-5xl text-white"></i>
+                                    </div>
+                                    <h3 class="text-2xl font-bold text-white mb-2">PKR 5.00 Added!</h3>
+                                    <p class="text-emerald-200 mb-4">Credited to your balance automatically</p>
+                                    <button onclick="resetAd()" class="bg-white text-emerald-600 px-6 py-3 rounded-full font-bold hover:bg-emerald-50 transition">
+                                        Watch Next Ad →
+                                    </button>
+                                </div>
+
+                                <!-- Limit Reached State -->
+                                <div id="ad-limit" class="hidden text-center p-8 w-full">
+                                    <i class="fas fa-calendar-check text-5xl text-yellow-400 mb-4 block"></i>
+                                    <h3 class="text-xl font-bold mb-2">Daily Limit Reached!</h3>
+                                    <p class="text-gray-400 mb-4">You have watched 20 ads today</p>
+                                    <p class="text-emerald-400 text-sm">Come back tomorrow for more!</p>
+                                </div>
+                            </div>
+
+                            <!-- Info Box -->
+                            <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-start gap-3">
+                                <i class="fas fa-info-circle text-blue-500 mt-1"></i>
+                                <div class="text-sm text-blue-800">
+                                    <p class="font-semibold mb-1">How it works:</p>
+                                    <ol class="list-decimal list-inside space-y-1 text-blue-700">
+                                        <li>Click the play button to open ad in new tab</li>
+                                        <li>Stay on this page for 10 seconds</li>
+                                        <li>PKR 5 will be added automatically - no key needed!</li>
+                                    </ol>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sidebar Stats -->
+                    <div class="space-y-6">
+                        <!-- Stats -->
+                        <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                            <h4 class="font-bold text-gray-700 mb-4">Today's Stats</h4>
+                            <div class="space-y-3">
+                                <div class="flex justify-between items-center p-3 bg-gray-50 rounded-xl">
+                                    <span class="text-gray-600 text-sm">Ads Watched</span>
+                                    <span class="font-bold text-emerald-600 text-lg" id="today-ads">0</span>
+                                </div>
+                                <div class="flex justify-between items-center p-3 bg-gray-50 rounded-xl">
+                                    <span class="text-gray-600 text-sm">Earnings Today</span>
+                                    <span class="font-bold text-emerald-600" id="today-earnings">PKR 0</span>
+                                </div>
+                                <div class="flex justify-between items-center p-3 bg-emerald-50 rounded-xl border border-emerald-100">
+                                    <span class="text-emerald-700 text-sm font-medium">Total Balance</span>
+                                    <span class="font-bold text-emerald-700" id="sidebar-balance">PKR 0</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Progress -->
+                        <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                            <div class="flex justify-between items-center mb-2">
+                                <h4 class="font-bold text-gray-700 text-sm">To Withdrawal</h4>
+                                <span class="text-xs font-bold text-emerald-600" id="progress-text">0%</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-3 mb-2">
+                                <div id="withdrawal-progress" class="bg-emerald-500 h-3 rounded-full transition-all" style="width: 0%"></div>
+                            </div>
+                            <p class="text-xs text-gray-500 mb-3">Need PKR 1,500</p>
+                            <button onclick="showSection('withdraw')" id="withdraw-btn" disabled 
+                                class="w-full py-2 rounded-lg font-bold text-sm bg-gray-300 text-gray-500 cursor-not-allowed">
+                                <i class="fas fa-lock mr-1"></i> Locked
+                            </button>
+                        </div>
+
+                        <!-- Daily Limit -->
+                        <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                            <div class="flex justify-between items-center mb-2">
+                                <h4 class="font-bold text-gray-700 text-sm">Daily Limit</h4>
+                                <span class="text-xs font-bold text-blue-600" id="daily-limit-text">0/20</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2">
+                                <div id="daily-progress" class="bg-blue-500 h-2 rounded-full transition-all" style="width: 0%"></div>
+                            </div>
+                            <p class="text-xs text-gray-500 mt-2">Max 20 ads per day</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- WITHDRAW PAGE -->
+    <div id="page-withdraw" class="section-content hidden">
+        <div class="bg-gray-50 min-h-screen pb-20">
+            <div class="max-w-2xl mx-auto px-4 py-8">
+                <div class="bg-white rounded-3xl shadow-lg p-8 border border-gray-100">
+                    <div class="text-center mb-6">
+                        <div class="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4 text-emerald-600 text-2xl">
+                            <i class="fas fa-wallet"></i>
+                        </div>
+                        <h2 class="text-2xl font-bold">Withdraw Funds</h2>
+                        <p class="text-gray-500 text-sm mt-1">Min: PKR 1,500</p>
+                    </div>
+
+                    <div class="bg-gradient-to-r from-emerald-500 to-teal-600 rounded-2xl p-6 text-white text-center mb-6">
+                        <div class="text-emerald-100 text-xs mb-1">Available</div>
+                        <div class="text-3xl font-bold" id="withdraw-balance">PKR 0.00</div>
+                    </div>
+
+                    <form id="withdraw-form" class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Method</label>
+                            <div class="grid grid-cols-2 gap-4">
+                                <label class="cursor-pointer border-2 border-emerald-500 bg-emerald-50 rounded-xl p-4 text-center">
+                                    <input type="radio" name="method" value="jazzcash" class="hidden" checked>
+                                    <i class="fas fa-mobile-alt text-2xl text-emerald-600 mb-1 block"></i>
+                                    <span class="font-medium text-sm">JazzCash</span>
+                                </label>
+                                <label class="cursor-pointer border-2 border-gray-200 rounded-xl p-4 text-center hover:border-emerald-300">
+                                    <input type="radio" name="method" value="easypaisa" class="hidden">
+                                    <i class="fas fa-wallet text-2xl text-gray-400 mb-1 block"></i>
+                                    <span class="font-medium text-sm text-gray-600">EasyPaisa</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Account Number</label>
+                            <input type="tel" id="withdraw-phone" required pattern="03[0-9]{9}" 
+                                class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:border-emerald-500"
+                                placeholder="03XXXXXXXXX">
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Amount</label>
+                            <input type="number" id="withdraw-amount" required min="1500" 
+                                class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:border-emerald-500"
+                                placeholder="1500">
+                            <p class="text-xs text-gray-500 mt-1">Available: <span id="available-amount">0</span></p>
+                        </div>
+
+                        <button type="submit" id="submit-withdraw" class="w-full btn-primary rounded-xl py-3 font-bold disabled:opacity-50">
+                            Request Withdrawal
+                        </button>
+                    </form>
+
+                    <div class="mt-6 pt-6 border-t border-gray-100">
+                        <h3 class="font-bold text-gray-700 mb-3 text-sm">Recent</h3>
+                        <div id="withdrawal-history" class="space-y-2 text-sm">
+                            <p class="text-gray-400 text-center py-4">No withdrawals yet</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- HISTORY PAGE -->
+    <div id="page-history" class="section-content hidden">
+        <div class="bg-gray-50 min-h-screen pb-20">
+            <div class="max-w-4xl mx-auto px-4 py-8">
+                <h2 class="text-2xl font-bold mb-6">History</h2>
+                <div class="bg-white rounded-3xl shadow-lg border border-gray-100 overflow-hidden">
+                    <table class="w-full text-sm">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-4 py-3 text-left text-gray-500 font-medium">Date</th>
+                                <th class="px-4 py-3 text-left text-gray-500 font-medium">Type</th>
+                                <th class="px-4 py-3 text-right text-gray-500 font-medium">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody id="history-list" class="divide-y divide-gray-100">
+                        </tbody>
+                    </table>
+                    <div id="no-history" class="hidden text-center py-8 text-gray-400">
+                        <p>No history yet</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- AUTH MODAL -->
+    <div id="auth-modal" class="hidden modal-overlay">
+        <div class="modal-content">
+            <button onclick="hideAuthModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+            
+            <div class="flex border-b border-gray-100">
+                <button onclick="switchAuthTab('login')" id="tab-login" class="flex-1 py-4 text-center font-semibold text-emerald-600 border-b-2 border-emerald-500 bg-emerald-50">
+                    Login
+                </button>
+                <button onclick="switchAuthTab('signup')" id="tab-signup" class="flex-1 py-4 text-center font-semibold text-gray-500">
+                    Sign Up
+                </button>
+            </div>
+            
+            <div class="p-6">
+                <div id="auth-error" class="hidden mb-4 p-3 bg-red-50 text-red-600 text-sm rounded-lg text-center"></div>
+
+                <!-- Login -->
+                <form id="login-form" class="space-y-4">
+                    <input type="email" id="login-email" required placeholder="Email" 
+                        class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:border-emerald-500">
+                    <input type="password" id="login-password" required placeholder="Password" 
+                        class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:border-emerald-500">
+                    <button type="submit" id="login-btn" class="w-full btn-primary rounded-xl py-3 font-bold flex items-center justify-center gap-2">
+                        <span>Login</span>
+                        <i id="login-spinner" class="fas fa-spinner loading-spinner hidden"></i>
+                    </button>
+                </form>
+
+                <!-- Signup -->
+                <form id="signup-form" class="space-y-4 hidden">
+                    <input type="text" id="signup-name" required placeholder="Full Name" 
+                        class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:border-emerald-500">
+                    <input type="email" id="signup-email" required placeholder="Email" 
+                        class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:border-emerald-500">
+                    <input type="password" id="signup-password" required minlength="6" placeholder="Password (min 6)" 
+                        class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:border-emerald-500">
+                    <input type="password" id="signup-confirm" required placeholder="Confirm Password" 
+                        class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:border-emerald-500">
+                    <button type="submit" id="signup-btn" class="w-full btn-primary rounded-xl py-3 font-bold flex items-center justify-center gap-2">
+                        <span>Create Account</span>
+                        <i id="signup-spinner" class="fas fa-spinner loading-spinner hidden"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST CONTAINER -->
+    <div id="toast-container" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- JAVASCRIPT -->
+    <script>
+        // Initialize Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyBeiRsWTTaHUsO5bhO-Whu8OT3B_gjtG5o",
+            authDomain: "al43-84186.firebaseapp.com",
+            projectId: "al43-84186",
+            storageBucket: "al43-84186.firebasestorage.app",
+            messagingSenderId: "908513417340",
+            appId: "1:908513417340:web:1fe6b904f7b82112e651f9",
+            measurementId: "G-LZJ3H6CYNT"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        // Global State
+        let currentUser = null;
+        let userData = null;
+        let countdownInterval = null;
+        let isProcessing = false;
+
+        // Auth State Listener
+        auth.onAuthStateChanged(async (user) => {
+            if (user) {
+                currentUser = user;
+                await loadUserData();
+                showSection('dashboard');
+                document.getElementById('nav-auth').classList.add('hidden');
+                document.getElementById('nav-user').classList.remove('hidden');
+                document.getElementById('nav-user').classList.add('flex');
+            } else {
+                currentUser = null;
+                userData = null;
+                showSection('home');
+                document.getElementById('nav-auth').classList.remove('hidden');
+                document.getElementById('nav-user').classList.add('hidden');
+                document.getElementById('nav-user').classList.remove('flex');
+            }
+        });
+
+        // Section Navigation
+        function showSection(section) {
+            document.getElementById('page-home').classList.add('hidden');
+            document.getElementById('page-dashboard').classList.add('hidden');
+            document.getElementById('page-withdraw').classList.add('hidden');
+            document.getElementById('page-history').classList.add('hidden');
+            
+            const page = document.getElementById('page-' + section);
+            if (page) {
+                page.classList.remove('hidden');
+                page.classList.add('fade-in');
+            }
+            
+            if (section === 'dashboard') loadUserData();
+            if (section === 'withdraw') updateWithdrawalUI();
+            if (section === 'history') loadHistory();
+        }
+
+        // Modal Functions
+        function showAuthModal(type) {
+            document.getElementById('auth-modal').classList.remove('hidden');
+            document.getElementById('auth-error').classList.add('hidden');
+            switchAuthTab(type);
+        }
+
+        function hideAuthModal() {
+            document.getElementById('auth-modal').classList.add('hidden');
+        }
+
+        function switchAuthTab(type) {
+            const loginTab = document.getElementById('tab-login');
+            const signupTab = document.getElementById('tab-signup');
+            const loginForm = document.getElementById('login-form');
+            const signupForm = document.getElementById('signup-form');
+            
+            if (type === 'login') {
+                loginTab.className = "flex-1 py-4 text-center font-semibold text-emerald-600 border-b-2 border-emerald-500 bg-emerald-50";
+                signupTab.className = "flex-1 py-4 text-center font-semibold text-gray-500";
+                loginForm.classList.remove('hidden');
+                signupForm.classList.add('hidden');
+            } else {
+                signupTab.className = "flex-1 py-4 text-center font-semibold text-emerald-600 border-b-2 border-emerald-500 bg-emerald-50";
+                loginTab.className = "flex-1 py-4 text-center font-semibold text-gray-500";
+                signupForm.classList.remove('hidden');
+                loginForm.classList.add('hidden');
+            }
+        }
+
+        function toggleDropdown() {
+            const dropdown = document.getElementById('user-dropdown');
+            dropdown.classList.toggle('hidden');
+        }
+
+        document.addEventListener('click', (e) => {
+            const container = document.querySelector('.relative');
+            if (container && !container.contains(e.target)) {
+                const dropdown = document.getElementById('user-dropdown');
+                if (dropdown) dropdown.classList.add('hidden');
+            }
+        });
+
+        // Login
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('login-btn');
+            const spinner = document.getElementById('login-spinner');
+            const errorEl = document.getElementById('auth-error');
+            
+            btn.disabled = true;
+            spinner.classList.remove('hidden');
+            errorEl.classList.add('hidden');
+            
+            try {
+                await auth.signInWithEmailAndPassword(
+                    document.getElementById('login-email').value,
+                    document.getElementById('login-password').value
+                );
+                hideAuthModal();
+                showToast('Welcome back!', 'success');
+            } catch (error) {
+                errorEl.textContent = error.message;
+                errorEl.classList.remove('hidden');
+            } finally {
+                btn.disabled = false;
+                spinner.classList.add('hidden');
+            }
+        });
+
+        // Signup
+        document.getElementById('signup-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('signup-btn');
+            const spinner = document.getElementById('signup-spinner');
+            const errorEl = document.getElementById('auth-error');
+            
+            const name = document.getElementById('signup-name').value;
+            const email = document.getElementById('signup-email').value;
+            const password = document.getElementById('signup-password').value;
+            const confirm = document.getElementById('signup-confirm').value;
+            
+            if (password !== confirm) {
+                errorEl.textContent = 'Passwords do not match';
+                errorEl.classList.remove('hidden');
+                return;
+            }
+            
+            btn.disabled = true;
+            spinner.classList.remove('hidden');
+            errorEl.classList.add('hidden');
+            
+            try {
+                const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+                await userCredential.user.updateProfile({ displayName: name });
+                
+                await db.collection('users').doc(userCredential.user.uid).set({
+                    name: name,
+                    email: email,
+                    balance: 0,
+                    totalEarned: 0,
+                    adsWatchedToday: 0,
+                    lastAdDate: new Date().toDateString(),
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
+                hideAuthModal();
+                showToast('Account created!', 'success');
+            } catch (error) {
+                errorEl.textContent = error.message;
+                errorEl.classList.remove('hidden');
+            } finally {
+                btn.disabled = false;
+                spinner.classList.add('hidden');
+            }
+        });
+
+        async function logout() {
+            await auth.signOut();
+            showToast('Logged out', 'info');
+        }
+
+        // Load User Data
+        async function loadUserData() {
+            if (!currentUser) return;
+            
+            try {
+                const doc = await db.collection('users').doc(currentUser.uid).get();
+                if (doc.exists) {
+                    userData = doc.data();
+                    
+                    const today = new Date().toDateString();
+                    if (userData.lastAdDate !== today) {
+                        await db.collection('users').doc(currentUser.uid).update({
+                            adsWatchedToday: 0,
+                            lastAdDate: today
+                        });
+                        userData.adsWatchedToday = 0;
+                    }
+                    
+                    updateUI();
+                    
+                    // Check if limit reached
+                    if (userData.adsWatchedToday >= 20) {
+                        showLimitReached();
+                    }
+                }
+            } catch (error) {
+                console.error("Load error:", error);
+            }
+        }
+
+        function updateUI() {
+            if (!userData) return;
+            
+            const balance = userData.balance || 0;
+            const adsToday = userData.adsWatchedToday || 0;
+            
+            document.getElementById('nav-balance').textContent = `PKR ${balance.toFixed(2)}`;
+            document.getElementById('dashboard-balance').textContent = `PKR ${balance.toFixed(2)}`;
+            document.getElementById('sidebar-balance').textContent = `PKR ${balance.toFixed(2)}`;
+            document.getElementById('welcome-name').textContent = userData.name || 'User';
+            document.getElementById('user-name').textContent = userData.name || 'User';
+            
+            document.getElementById('today-ads').textContent = adsToday;
+            document.getElementById('today-earnings').textContent = `PKR ${adsToday * 5}`;
+            document.getElementById('daily-limit-text').textContent = `${adsToday}/20`;
+            
+            document.getElementById('daily-progress').style.width = `${(adsToday / 20) * 100}%`;
+            const withdrawPercent = Math.min((balance / 1500) * 100, 100);
+            document.getElementById('withdrawal-progress').style.width = `${withdrawPercent}%`;
+            document.getElementById('progress-text').textContent = `${Math.round(withdrawPercent)}%`;
+            
+            const withdrawBtn = document.getElementById('withdraw-btn');
+            if (balance >= 1500) {
+                withdrawBtn.disabled = false;
+                withdrawBtn.innerHTML = '<i class="fas fa-wallet mr-1"></i> Withdraw';
+                withdrawBtn.className = "w-full py-2 rounded-lg font-bold text-sm btn-primary text-white";
+            } else {
+                withdrawBtn.disabled = true;
+                withdrawBtn.innerHTML = '<i class="fas fa-lock mr-1"></i> Locked';
+                withdrawBtn.className = "w-full py-2 rounded-lg font-bold text-sm bg-gray-300 text-gray-500 cursor-not-allowed";
+            }
+        }
+
+        // AD SYSTEM - NO VERIFICATION, AUTO CREDIT
+        function startWatching() {
+            if (!currentUser) {
+                showAuthModal('login');
+                return;
+            }
+            
+            if (!userData || userData.adsWatchedToday >= 20) {
+                showToast('Daily limit reached!', 'error');
+                return;
+            }
+            
+            // Open ad
+            window.open("https://www.effectivegatecpm.com/b1qg6cv9?key=12094b97a202fc07cb9cab102cee6bcd", '_blank');
+            
+            // Switch to watching UI
+            document.getElementById('ad-ready').classList.add('hidden');
+            document.getElementById('ad-watching').classList.remove('hidden');
+            
+            // Start countdown
+            let timeLeft = 10;
+            document.getElementById('countdown-timer').textContent = timeLeft;
+            document.getElementById('time-progress').style.width = '0%';
+            
+            // Disable button to prevent double clicks
+            document.getElementById('watch-btn').disabled = true;
+            
+            countdownInterval = setInterval(() => {
+                timeLeft--;
+                document.getElementById('countdown-timer').textContent = timeLeft;
+                document.getElementById('time-progress').style.width = `${((10 - timeLeft) / 10) * 100}%`;
+                
+                if (timeLeft <= 0) {
+                    clearInterval(countdownInterval);
+                    processAutoCredit();
+                }
+            }, 1000);
+        }
+
+        async function processAutoCredit() {
+            if (isProcessing) return;
+            isProcessing = true;
+            
+            // Show processing
+            document.getElementById('ad-watching').classList.add('hidden');
+            document.getElementById('ad-processing').classList.remove('hidden');
+            
+            try {
+                const userRef = db.collection('users').doc(currentUser.uid);
+                
+                // Update balance
+                await userRef.update({
+                    balance: firebase.firestore.FieldValue.increment(5),
+                    totalEarned: firebase.firestore.FieldValue.increment(5),
+                    adsWatchedToday: firebase.firestore.FieldValue.increment(1)
+                });
+                
+                // Add transaction
+                await userRef.collection('transactions').add({
+                    type: 'earning',
+                    amount: 5,
+                    description: 'Ad view (auto)',
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
+                // Show success
+                document.getElementById('ad-processing').classList.add('hidden');
+                document.getElementById('ad-success').classList.remove('hidden');
+                
+                // Refresh data
+                await loadUserData();
+                showToast('PKR 5 added automatically!', 'success');
+                
+            } catch (error) {
+                console.error("Credit error:", error);
+                showToast('Error adding credit. Please try again.', 'error');
+                resetAd();
+            } finally {
+                isProcessing = false;
+            }
+        }
+
+        function resetAd() {
+            clearInterval(countdownInterval);
+            document.getElementById('ad-success').classList.add('hidden');
+            document.getElementById('ad-ready').classList.remove('hidden');
+            document.getElementById('time-progress').style.width = '0%';
+            document.getElementById('watch-btn').disabled = false;
+            
+            // Check if limit reached after reset
+            if (userData && userData.adsWatchedToday >= 20) {
+                showLimitReached();
+            }
+        }
+
+        function showLimitReached() {
+            document.getElementById('ad-ready').classList.add('hidden');
+            document.getElementById('ad-success').classList.add('hidden');
+            document.getElementById('ad-limit').classList.remove('hidden');
+        }
+
+        // Withdrawal
+        function updateWithdrawalUI() {
+            if (!userData) return;
+            const balance = userData.balance || 0;
+            document.getElementById('withdraw-balance').textContent = `PKR ${balance.toFixed(2)}`;
+            document.getElementById('available-amount').textContent = balance.toFixed(2);
+        }
+
+        document.getElementById('withdraw-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const amount = parseInt(document.getElementById('withdraw-amount').value);
+            const phone = document.getElementById('withdraw-phone').value;
+            const method = document.querySelector('input[name="method"]:checked').value;
+            
+            if (amount < 1500) {
+                showToast('Minimum PKR 1,500', 'error');
+                return;
+            }
+            
+            if (amount > userData.balance) {
+                showToast('Insufficient balance', 'error');
+                return;
+            }
+            
+            try {
+                const userRef = db.collection('users').doc(currentUser.uid);
+                
+                await userRef.update({
+                    balance: firebase.firestore.FieldValue.increment(-amount)
+                });
+                
+                await userRef.collection('withdrawals').add({
+                    amount: amount,
+                    method: method,
+                    phone: phone,
+                    status: 'pending',
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
+                showToast('Withdrawal requested!', 'success');
+                document.getElementById('withdraw-form').reset();
+                await loadUserData();
+                
+            } catch (error) {
+                showToast('Error processing', 'error');
+            }
+        });
+
+        // History
+        async function loadHistory() {
+            try {
+                const snapshot = await db.collection('users')
+                    .doc(currentUser.uid)
+                    .collection('transactions')
+                    .orderBy('timestamp', 'desc')
+                    .get();
+                
+                const tbody = document.getElementById('history-list');
+                
+                if (snapshot.empty) {
+                    tbody.innerHTML = '';
+                    document.getElementById('no-history').classList.remove('hidden');
+                    return;
+                }
+                
+                document.getElementById('no-history').classList.add('hidden');
+                tbody.innerHTML = snapshot.docs.map(doc => {
+                    const data = doc.data();
+                    const date = data.timestamp ? new Date(data.timestamp.toDate()).toLocaleDateString() : '-';
+                    const isPositive = data.amount > 0;
+                    
+                    return `
+                        <tr>
+                            <td class="px-4 py-3 text-gray-600">${date}</td>
+                            <td class="px-4 py-3">
+                                <span class="px-2 py-1 rounded-full text-xs ${isPositive ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}">
+                                    ${data.type}
+                                </span>
+                            </td>
+                            <td class="px-4 py-3 text-right font-bold ${isPositive ? 'text-emerald-600' : 'text-red-600'}">
+                                ${isPositive ? '+' : ''}PKR ${Math.abs(data.amount)}
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+                
+            } catch (error) {
+                console.error(error);
+            }
+        }
+
+        // Toast
+        function showToast(message, type) {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            const colors = {
+                success: 'bg-emerald-500',
+                error: 'bg-red-500',
+                info: 'bg-blue-500'
+            };
+            
+            toast.className = `${colors[type]} text-white px-6 py-3 rounded-xl shadow-lg flex items-center gap-2 transform transition-all duration-300 translate-y-10 opacity-0`;
+            toast.innerHTML = `<i class="fas ${type === 'success' ? 'fa-check' : type === 'error' ? 'fa-exclamation' : 'fa-info'}-circle"></i><span>${message}</span>`;
+            
+            container.appendChild(toast);
+            
+            requestAnimationFrame(() => {
+                toast.classList.remove('translate-y-10', 'opacity-0');
+            });
+            
+            setTimeout(() => {
+                toast.classList.add('translate-y-10', 'opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
